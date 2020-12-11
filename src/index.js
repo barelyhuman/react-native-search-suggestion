@@ -1,22 +1,24 @@
 import React from 'react'
 import { StyleSheet, View, Text, ScrollView, TouchableHighlight, Animated, TextInput } from 'react-native'
 import { searchProduct } from "./helpers/searchProduct";
+import { TextInput as BaseTextInput } from 'react-native-paper';
 
 export default class SuggestionSearchList extends React.Component {
     constructor (props) {
         super(props)
-
         this.state = {
-            searchValue: '',
+            searchValue: props.initialValue,
             showResults: false,
             results: [],
             animation: new Animated.Value(0)
         }
     }
 
+
     changeSearchValue (searchValue) {
         const { startSuggestingFrom } = this.props
-        this.setState({ searchValue }, () => {
+        this.props.inputValueChange(searchValue)
+        this.setState({ searchValue }, () => {  
             if (searchValue.length >= startSuggestingFrom) {
                 this.search()
             } else if (searchValue.length === 0) {
@@ -28,13 +30,14 @@ export default class SuggestionSearchList extends React.Component {
     showSuggestBox () {
         const { inputStyle: { height } } = this.props
         const { results } = this.state
-        const suggestBoxHeight = (height + 5) * results.length
+        const suggestBoxHeight = (height + 5) * (this.props.maxResults || results.length)
 
         Animated.timing(
             this.state.animation,
             {
                 toValue: suggestBoxHeight,
-                duration: 500
+                duration: 500,
+                useNativeDriver: false
             }
         ).start()
     }
@@ -43,28 +46,52 @@ export default class SuggestionSearchList extends React.Component {
         const { searchValue } = this.state
         const { list } = this.props
         const results = await searchProduct(searchValue, list)
-        this.setState({ results, showResults: true }, () => {
-            this.showSuggestBox()
-        })
+        if(results.length > 0)
+            this.setState({ results, showResults: true }, () => {
+                this.showSuggestBox()
+            })
+    }
+    renderListItem (item){
+        return (
+        <TouchableHighlight underlayColor={this.props.listItemHighlightColor || "#fbd42c"} key={`searchlist${item.id}`} onPress={()=>{
+            this.setState({
+                searchValue: item.name,
+                showResults: false
+                })
+            this.props.onListPress(item.name);
+      }}>
+        <View style={this.props.listItemStyle}>
+            <Text style={this.props.listItemTextStyle}>{ item.name }</Text>
+        </View>
+        </TouchableHighlight>)
     }
 
     render() {
         const { results, showResults, searchValue } = this.state
         return (
             <View>
-                <TextInput
-                    style={this.props.inputStyle}
-                    onChangeText={(text) => this.changeSearchValue(text)}
-                    value={searchValue}
-                    placeholder="Search Product"
-                />
+                {this.props.reactNativePaper ? 
+                <BaseTextInput
+                mode="outlined"
+                onChangeText={(text) => this.changeSearchValue(text)}
+                value={searchValue}
+                style={this.props.paperBtnStyles}
+                label={this.props.placeholder}
+                keyboardType={this.props.keyboardType || null}
+                />  :   <TextInput
+                                style={this.props.inputStyle}
+                                onChangeText={(text) => this.changeSearchValue(text)}
+                                value={searchValue}
+                                placeholder={this.props.placeholder}
+                            />}
+
                 {
                     showResults &&
                     <Animated.View style={[this.props.suggestBoxStyle, { height: this.state.animation }]}>
                         <ScrollView>
                             {
                                 results.map(item => {
-                                    return this.props.renderListItem(item)
+                                    return this.renderListItem(item)
                                 })
                             }
                         </ScrollView>
