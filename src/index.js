@@ -55,13 +55,13 @@ export default class SuggestionSearchList extends React.Component {
         return (
         <TouchableHighlight underlayColor={this.props.listItemHighlightColor || "#fbd42c"} key={`searchlist${item.id}`} onPress={()=>{
             this.setState({
-                searchValue: item.name,
+                searchValue: item.selectedItem,
                 showResults: false
                 })
-            this.props.onListPress(item.name);
+            this.props.onListPress(item.selectedItem);
       }}>
         <View style={this.props.listItemStyle}>
-            <Text style={this.props.listItemTextStyle}>{ item.name }</Text>
+            {this.props.children(item)}
         </View>
         </TouchableHighlight>)
     }
